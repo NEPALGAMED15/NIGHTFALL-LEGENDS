@@ -1,0 +1,126 @@
+export const GAME_WIDTH = 1280;
+export const GAME_HEIGHT = 720;
+
+export const PHYSICS_CONFIG = {
+  GRAVITY_Y: 1280,
+  MOVE_SPEED: 295,
+  ECLIPSE_SPEED_MULT: 1.25,
+  JUMP_VELOCITY: -540,
+  DOUBLE_JUMP_VELOCITY: -490,
+  COYOTE_TIME: 0.11,
+  JUMP_BUFFER_TIME: 0.12,
+  DASH_SPEED: 620,
+  DASH_DURATION: 0.18,
+  MAX_FALL_SPEED: 880,
+};
+
+export const PLAYER_BASE_STATS = {
+  maxHealth: 100,
+  maxEnergy: 100,
+  energyRegenPerSec: 6,
+  baseDamage: 22,
+  invulnDuration: 0.75,
+};
+
+export const ABILITIES = [
+  {
+    id: 'shadow_dash',
+    key: 'Shift',
+    slot: 1,
+    name: 'Shadow Dash',
+    shortLabel: 'Dash',
+    role: 'Invulnerable phase lunge',
+    energyCost: 15,
+    cooldown: 1.4,
+    duration: 0.18,
+    color: '#38bdf8',
+  },
+  {
+    id: 'echo_clone',
+    key: '2',
+    slot: 2,
+    name: 'Echo Clone',
+    shortLabel: 'Echo',
+    role: 'Summons shadow decoy that slashes foes',
+    energyCost: 25,
+    cooldown: 7.0,
+    duration: 4.5,
+    color: '#818cf8',
+  },
+  {
+    id: 'night_vision',
+    key: '3',
+    slot: 3,
+    name: 'Night Vision',
+    shortLabel: 'Vision',
+    role: 'Reveals hidden paths & boosts crit',
+    energyCost: 20,
+    cooldown: 9.0,
+    duration: 6.5,
+    color: '#2dd4bf',
+  },
+  {
+    id: 'soul_strike',
+    key: '4',
+    slot: 4,
+    name: 'Soul Strike',
+    shortLabel: 'Soul',
+    role: 'Fires piercing Nightfang crescent wave',
+    energyCost: 30,
+    cooldown: 4.0,
+    duration: 0.35,
+    color: '#c084fc',
+  },
+  {
+    id: 'eclipse_mode',
+    key: 'K',
+    slot: 5,
+    name: 'Eclipse Mode',
+    shortLabel: 'Eclipse',
+    role: '+60% damage, +25% speed & lifesteal',
+    energyCost: 45,
+    cooldown: 16.0,
+    duration: 8.0,
+    color: '#f59e0b',
+  },
+];
+
+export const TIME_MODES = {
+  NIGHT: 'night',
+  DAY: 'day',
+};
+
+export const DAY_NIGHT_THEMES = {
+  night: {
+    id: 'night',
+    label: 'Night Mode',
+    skyTop: 0x070b18,
+    skyBottom: 0x171b36,
+    moonColor: 0xdce8ff,
+    moonGlow: 0x5eead4,
+    farTint: 0x1e2545,
+    midTint: 0x131a30,
+    fogColor: 0x0d1528,
+    fogAlpha: 0.32,
+    ambientOverlay: 0x060a18,
+    ambientAlpha: 0.24,
+    fireflyColor: 0x38f2d2,
+    lightRayAlpha: 0.08,
+  },
+  day: {
+    id: 'day',
+    label: 'Day Mode',
+    skyTop: 0x3b6e8c,
+    skyBottom: 0x9ec5ab,
+    moonColor: 0xfff3c4,
+    moonGlow: 0xfde047,
+    farTint: 0x4b7768,
+    midTint: 0x2d5446,
+    fogColor: 0xd8f3dc,
+    fogAlpha: 0.16,
+    ambientOverlay: 0xfef3c7,
+    ambientAlpha: 0.04,
+    fireflyColor: 0xfef08a,
+    lightRayAlpha: 0.16,
+  },
+};
