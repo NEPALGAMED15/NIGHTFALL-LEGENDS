@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { audioSystem } from '../systems/AudioSystem.js';
 import { saveSystem } from '../systems/SaveSystem.js';
 import { adManager } from '../systems/AdManager.js';
+import { androidBridge } from '../systems/AndroidBridge.js';
 
 export class PauseScene extends Phaser.Scene {
   constructor() {
@@ -27,9 +28,14 @@ export class PauseScene extends Phaser.Scene {
       }
     };
     window.addEventListener('keydown', this.keyHandler);
+    androidBridge.setBackHandler(() => {
+      this.resumeGame();
+      return true;
+    });
 
     this.events.once('shutdown', () => {
       window.removeEventListener('keydown', this.keyHandler);
+      androidBridge.setBackHandler(null);
       this.unmountModal();
     });
   }

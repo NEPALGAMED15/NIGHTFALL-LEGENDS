@@ -8,6 +8,7 @@ import { GameScene } from './scenes/GameScene.js';
 import { PauseScene } from './scenes/PauseScene.js';
 import { GameOverScene } from './scenes/GameOverScene.js';
 import { VictoryScene } from './scenes/VictoryScene.js';
+import { androidBridge } from './systems/AndroidBridge.js';
 
 export function getLiveViewportSize() {
   if (typeof window === 'undefined') return { width: 1280, height: 720 };
@@ -161,6 +162,26 @@ const game = bootGame();
 
 if (typeof window !== 'undefined' && game) {
   window.__NIGHTFALL_GAME__ = game;
+  androidBridge.init();
+  androidBridge.setLifecycleHandler((isActive) => {
+    if (!isActive) {
+      const gs = game.scene?.getScene?.('GameScene');
+      if (gs && gs.scene?.isActive?.() && !gs.scene?.isPaused?.()) {
+        gs.pauseGame?.();
+      }
+      if (game.sound?.context?.state === 'running') {
+        game.sound.context.suspend().catch(() => {});
+      }
+    } else {
+      const { width, height } = syncViewportHeightVar();
+      if (game.scale && (game.scale.width !== width || game.scale.height !== height)) {
+        game.scale.resize(width, height);
+      }
+      if (game.sound?.context?.state === 'suspended') {
+        game.sound.context.resume().catch(() => {});
+      }
+    }
+  });
 }
 
 export default game;

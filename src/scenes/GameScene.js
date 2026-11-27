@@ -16,6 +16,7 @@ import { GameHUD } from '../ui/GameHUD.js';
 import { MobileControls } from '../ui/MobileControls.js';
 import { computeCameraFraming } from '../systems/ViewportLayout.js';
 import { adManager } from '../systems/AdManager.js';
+import { androidBridge } from '../systems/AndroidBridge.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -43,6 +44,7 @@ export class GameScene extends Phaser.Scene {
     document.body.dataset.state = 'playing';
     document.getElementById('boot-loader')?.classList.add('hidden');
     if (typeof window !== 'undefined') window.__NIGHTFALL_BOOT_READY__ = true;
+    androidBridge.hideSplash();
 
     const save = saveSystem.load();
 
@@ -169,11 +171,21 @@ export class GameScene extends Phaser.Scene {
     this.scale.on('resize', this.resizeHandler);
     window.addEventListener('resize', this.resizeHandler);
 
+    const registerGameBack = () => {
+      androidBridge.setBackHandler(() => {
+        this.pauseGame();
+        return true;
+      });
+    };
+    registerGameBack();
+
     this.events.once('shutdown', () => {
+      androidBridge.setBackHandler(null);
       this.cleanup();
     });
     this.events.on('resume', () => {
       document.body.dataset.state = 'playing';
+      registerGameBack();
       this.clearHeldKeys();
       this.applyCameraFraming();
     });

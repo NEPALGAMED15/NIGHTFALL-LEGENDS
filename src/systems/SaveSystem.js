@@ -5,9 +5,28 @@ import { applyXpGain, evaluateAchievements } from './ProgressionManager.js';
 export const SAVE_STORAGE_KEY = 'nightfall_legends_save_v2';
 export const LEGACY_SAVE_STORAGE_KEY = 'nightfall_legends_save_v1';
 
+export function generatePlayerUid() {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const bytes = new Uint8Array(4);
+      crypto.getRandomValues(bytes);
+      const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+      return `NL-${hex}`;
+    }
+  } catch {
+    // Fallback below
+  }
+  const rand = Math.floor(0x10000000 + Math.random() * 0xefffffff)
+    .toString(16)
+    .toUpperCase();
+  return `NL-${rand}`;
+}
+
 export function createDefaultSave() {
   return {
     version: 2,
+    playerUid: generatePlayerUid(),
+    accountMode: 'guest',
     hasStarted: false,
     currentLevel: 1,
     highestUnlockedLevel: 1,
@@ -69,11 +88,20 @@ export class SaveSystem {
       const raw =
         this.storage.getItem(SAVE_STORAGE_KEY) ||
         this.storage.getItem(LEGACY_SAVE_STORAGE_KEY);
-      if (!raw) return defaults;
+      if (!raw) {
+        try {
+          this.storage.setItem(SAVE_STORAGE_KEY, JSON.stringify(defaults));
+        } catch {
+          // ignore
+        }
+        return defaults;
+      }
       const parsed = JSON.parse(raw);
-      return {
+      const merged = {
         ...defaults,
         ...parsed,
+        playerUid: typeof parsed.playerUid === 'string' && parsed.playerUid ? parsed.playerUid : defaults.playerUid,
+        accountMode: parsed.accountMode || 'guest',
         currentLevel: Math.max(1, Math.min(1000, parsed.currentLevel || 1)),
         highestUnlockedLevel: Math.max(1, Math.min(1000, parsed.highestUnlockedLevel || 1)),
         unlockedKingdoms:
@@ -106,6 +134,14 @@ export class SaveSystem {
           ...(parsed.settings || {}),
         },
       };
+      if (!parsed.playerUid) {
+        try {
+          this.storage.setItem(SAVE_STORAGE_KEY, JSON.stringify(merged));
+        } catch {
+          // ignore
+        }
+      }
+      return merged;
     } catch {
       return defaults;
     }

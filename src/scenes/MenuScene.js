@@ -18,6 +18,7 @@ import { computeMenuCoverFraming } from '../systems/ViewportLayout.js';
 import { adManager } from '../systems/AdManager.js';
 import { resolveAdPlacement } from '../systems/AdPlacementPolicy.js';
 import { GAME_CREDITS_ENTRIES, GAME_INFO_DETAILS } from '../systems/GameInfoContent.js';
+import { androidBridge } from '../systems/AndroidBridge.js';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -36,6 +37,7 @@ export class MenuScene extends Phaser.Scene {
     document.body.dataset.state = 'title';
     document.getElementById('boot-loader')?.classList.add('hidden');
     if (typeof window !== 'undefined') window.__NIGHTFALL_BOOT_READY__ = true;
+    androidBridge.hideSplash();
 
     adManager.setGameplayActive(false);
     adManager.setLayoutChangeHandler((reservedBottom) => this.applyAdBottomPadding(reservedBottom));
@@ -84,10 +86,22 @@ export class MenuScene extends Phaser.Scene {
     };
     window.addEventListener('keydown', this.keyHandler);
 
+    androidBridge.setBackHandler(() => {
+      if (this.activeSubModal) {
+        this.activeSubModal = this.modalReturnTo || null;
+        this.modalReturnTo = null;
+        this.modalNotice = '';
+        this.renderMenu();
+        return true;
+      }
+      return false;
+    });
+
     this.events.once('shutdown', () => {
       window.removeEventListener('keydown', this.keyHandler);
       window.removeEventListener('resize', this.resizeHandler);
       this.scale.off('resize', this.resizeHandler);
+      androidBridge.setBackHandler(null);
       adManager.setLayoutChangeHandler(null);
       adManager.clearAll();
       this.unmountMenuOverlay();
@@ -636,7 +650,15 @@ export class MenuScene extends Phaser.Scene {
               </h2>
               <p class="text-xs sm:text-sm text-sky-200/90 italic">${d.tagline}</p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              ${
+                !androidBridge.isNative()
+                  ? `<a href="/downloads/NightfallLegends-v1.0.0-release.apk" download="NightfallLegends-v1.0.0-release.apk"
+                      class="nf-btn-secondary px-3 py-1.5 rounded text-xs font-semibold text-teal-300 border-teal-400/40">
+                      Download APK
+                    </a>`
+                  : ''
+              }
               <button data-open-credits-from-info class="nf-btn-secondary px-3 py-1.5 rounded text-xs font-semibold">
                 Credits
               </button>
@@ -851,8 +873,11 @@ export class MenuScene extends Phaser.Scene {
                 </div>
               </div>
 
-              <div class="pt-3 border-t border-white/10 flex items-center justify-between">
-                <span class="text-slate-400 text-xs">Shards: ${save.totalShards} · Gems: ${save.totalGems} · Best: ${save.bestScore}</span>
+              <div class="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+                <div class="text-slate-400 text-xs">
+                  <div>Shards: ${save.totalShards} · Gems: ${save.totalGems} · Best: ${save.bestScore}</div>
+                  <div class="font-mono-num text-[11px] text-sky-300/85 mt-0.5">UID: ${save.playerUid || 'NL-GUEST'} · ${save.accountMode === 'guest' ? 'Guest Mode' : 'Local Profile'}</div>
+                </div>
                 <button data-ask-reset class="px-3 py-1.5 rounded text-xs font-semibold bg-rose-900/60 border border-rose-500/40 text-rose-200 hover:bg-rose-800/70">
                   Reset Save
                 </button>
@@ -944,6 +969,14 @@ export class MenuScene extends Phaser.Scene {
             class="nf-btn-secondary px-3.5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold">
             Credits
           </button>
+          ${
+            !androidBridge.isNative()
+              ? `<a href="/downloads/NightfallLegends-v1.0.0-release.apk" download="NightfallLegends-v1.0.0-release.apk"
+                  class="nf-btn-secondary px-3.5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold text-teal-300 border-teal-400/40 text-center">
+                  Android APK
+                </a>`
+              : ''
+          }
         </div>
       </div>
 

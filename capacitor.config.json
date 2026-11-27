@@ -1,0 +1,35 @@
+{
+  "appId": "com.nepalcmd.nightfalllegends",
+  "appName": "NIGHTFALL LEGENDS",
+  "webDir": "dist-android",
+  "backgroundColor": "#07090f",
+  "server": {
+    "androidScheme": "https",
+    "hostname": "localhost"
+  },
+  "android": {
+    "backgroundColor": "#07090f",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "useLegacyBridge": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2200,
+      "launchAutoHide": false,
+      "launchFadeOutDuration": 350,
+      "backgroundColor": "#07090f",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
+    "StatusBar": {
+      "overlaysWebView": true,
+      "style": "DARK",
+      "backgroundColor": "#07090f"
+    }
+  }
+}

@@ -1,3 +1,5 @@
+import { androidBridge } from '../systems/AndroidBridge.js';
+
 export class MobileControls {
   constructor(rootEl, callbacks) {
     this.rootEl = rootEl;
@@ -19,6 +21,7 @@ export class MobileControls {
   shouldShow(mode = 'auto') {
     if (mode === 'always') return true;
     if (mode === 'off') return false;
+    if (androidBridge.isAndroid()) return true;
     if (typeof window === 'undefined') return false;
     const coarse = window.matchMedia?.('(pointer: coarse)').matches;
     const touchCapable = 'ontouchstart' in window || navigator.maxTouchPoints > 0;

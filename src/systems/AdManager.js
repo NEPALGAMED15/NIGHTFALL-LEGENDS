@@ -1,4 +1,5 @@
 import { buildAtOptionsPayload, resolveAdPlacement } from './AdPlacementPolicy.js';
+import { androidBridge } from './AndroidBridge.js';
 
 const SCRIPT_TIMEOUT_MS = 6500;
 
@@ -69,7 +70,7 @@ export class AdManager {
    * Returns current layout reservation synchronously so MenuScene never overlaps buttons.
    */
   syncMenuPlacement({ activeSubModal = null, width, height } = {}) {
-    if (this.gameplayActive || typeof document === 'undefined') {
+    if (this.gameplayActive || typeof document === 'undefined' || !androidBridge.isOnline()) {
       this.clearAll();
       return { slot: 'none', placement: null, reservedBottomPx: 0 };
     }

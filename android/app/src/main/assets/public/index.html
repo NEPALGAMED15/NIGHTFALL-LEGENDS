@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#07090f" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>NIGHTFALL LEGENDS — When the Sun Falls, Legends Awaken</title>
+    <meta
+      name="description"
+      content="When the Sun Falls, Legends Awaken — A 2D dark fantasy action-adventure platformer starring Kael, The Last Nightwalker."
+    />
+    <meta property="og:title" content="NIGHTFALL LEGENDS" />
+    <meta
+      property="og:description"
+      content="When the Sun Falls, Legends Awaken — A 2D dark fantasy action-adventure platformer starring Kael, The Last Nightwalker."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/assets/index-DenkauaN.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BWtfP559.css">
+  </head>
+  <body data-state="title" class="bg-[#07090f] text-[#eae6dc] overflow-hidden select-none">
+    <div id="game-shell" class="nf-viewport-shell relative overflow-hidden bg-[#07090f]">
+      <div id="game-container" data-testid="game-canvas-container" class="absolute inset-0 w-full h-full"></div>
+      <div id="ui-overlay" class="nf-viewport-overlay fixed top-0 left-0 right-0 pointer-events-none z-20"></div>
+      <aside
+        id="home-ad-dock"
+        data-testid="home-ad-dock"
+        aria-label="Home menu banner"
+        class="hidden fixed bottom-0 left-0 right-0 z-30 flex items-center justify-center px-2 pt-1.5 pb-[max(6px,env(safe-area-inset-bottom,0px))] pointer-events-auto bg-[#07090f]/92 border-t border-[#c4a25e]/20 overflow-hidden"
+      ></aside>
+
+      <!-- Initial Boot Loader (hidden automatically once Phaser scenes mount) -->
+      <div
+        id="boot-loader"
+        class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#07090f] px-6 text-center"
+      >
+        <div class="font-display text-2xl sm:text-3xl font-bold tracking-widest text-[#e6cb8b] mb-2">
+          NIGHTFALL LEGENDS
+        </div>
+        <div class="text-xs text-slate-400 tracking-wide mb-4">Awakening the Shadow Realm...</div>
+        <div class="w-48 h-1.5 rounded bg-slate-900 border border-[#c4a25e]/40 overflow-hidden">
+          <div class="h-full w-1/2 bg-[#c4a25e] animate-pulse"></div>
+        </div>
+      </div>
+
+      <!-- Global Error Fallback (prevents silent black screen on mobile WebGL/runtime failure) -->
+      <div
+        id="fatal-error-overlay"
+        class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#07090f]/95 px-6 text-center"
+      >
+        <div class="nf-panel rounded-xl p-6 max-w-sm w-full">
+          <div class="font-display text-lg text-rose-300 font-bold mb-2">Display Initialization Issue</div>
+          <p id="fatal-error-msg" class="text-xs text-slate-300 mb-4">
+            A graphics or resource error interrupted startup. Tap below to reload cleanly.
+          </p>
+          <button
+            type="button"
+            onclick="window.location.reload()"
+            class="nf-btn-primary px-5 py-2.5 rounded-md text-xs font-bold"
+          >
+            Reload Game
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

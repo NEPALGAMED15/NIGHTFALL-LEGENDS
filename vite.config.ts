@@ -27,6 +27,43 @@ export default defineConfig(() => {
           }
         },
       },
+      {
+        name: 'android-apk-mime-headers',
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            const urlPath = (req.url || '').split('?')[0];
+            if (urlPath.endsWith('.apk')) {
+              const filename = path.basename(urlPath);
+              res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+              res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+              res.setHeader('X-Content-Type-Options', 'nosniff');
+            } else if (urlPath.endsWith('.aab')) {
+              const filename = path.basename(urlPath);
+              res.setHeader('Content-Type', 'application/octet-stream');
+              res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+              res.setHeader('X-Content-Type-Options', 'nosniff');
+            }
+            next();
+          });
+        },
+        configurePreviewServer(server) {
+          server.middlewares.use((req, res, next) => {
+            const urlPath = (req.url || '').split('?')[0];
+            if (urlPath.endsWith('.apk')) {
+              const filename = path.basename(urlPath);
+              res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+              res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+              res.setHeader('X-Content-Type-Options', 'nosniff');
+            } else if (urlPath.endsWith('.aab')) {
+              const filename = path.basename(urlPath);
+              res.setHeader('Content-Type', 'application/octet-stream');
+              res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+              res.setHeader('X-Content-Type-Options', 'nosniff');
+            }
+            next();
+          });
+        },
+      },
     ],
     resolve: {
       alias: {

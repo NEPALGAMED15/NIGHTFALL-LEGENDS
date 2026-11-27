@@ -191,3 +191,31 @@ test('GameInfoContent and AdPlacementPolicy info modal match exact specification
   assert.equal(infoShortLandscape.slot, 'none');
 });
 
+import { SaveSystem } from './SaveSystem.js';
+
+test('SaveSystem generates and preserves stable Player UID and guest accountMode across reloads', () => {
+  const store = new Map<string, string>();
+  const storage = {
+    getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+    setItem: (k: string, v: string) => {
+      store.set(k, String(v));
+    },
+    removeItem: (k: string) => {
+      store.delete(k);
+    },
+  };
+  const sys = new SaveSystem(storage);
+  const first = sys.load();
+  assert.match(first.playerUid, /^NL-[0-9A-F]{8}$/);
+  assert.equal(first.accountMode, 'guest');
+
+  const second = sys.load();
+  assert.equal(second.playerUid, first.playerUid);
+
+  sys.recordLevelClear({ levelNumber: 1, score: 900, stars: 2 });
+  const afterClear = sys.load();
+  assert.equal(afterClear.playerUid, first.playerUid);
+  assert.equal(afterClear.highestUnlockedLevel, 2);
+});
+
+

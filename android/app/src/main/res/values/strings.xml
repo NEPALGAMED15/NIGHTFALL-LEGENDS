@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NIGHTFALL LEGENDS</string>
+    <string name="title_activity_main">NIGHTFALL LEGENDS</string>
+    <string name="package_name">com.nepalcmd.nightfalllegends</string>
+    <string name="custom_url_scheme">com.nepalcmd.nightfalllegends</string>
+</resources>

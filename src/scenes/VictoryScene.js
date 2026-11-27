@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { adManager } from '../systems/AdManager.js';
+import { androidBridge } from '../systems/AndroidBridge.js';
 
 export class VictoryScene extends Phaser.Scene {
   constructor() {
@@ -34,7 +35,15 @@ export class VictoryScene extends Phaser.Scene {
     document.body.dataset.state = 'gameover';
     this.mountModal();
 
+    androidBridge.setBackHandler(() => {
+      this.scene.stop('GameScene');
+      this.scene.stop();
+      this.scene.start('MenuScene');
+      return true;
+    });
+
     this.events.once('shutdown', () => {
+      androidBridge.setBackHandler(null);
       this.unmountModal();
     });
   }
