@@ -709,8 +709,11 @@ export function buildParallaxAndForegroundAssets(scene) {
   const hasNight = scene.textures.exists('forest_night');
   if (!hasDay && !hasNight) return false;
 
-  const dayImg = hasDay ? scene.textures.get('forest_day').getSourceImage() : null;
-  const nightImg = hasNight ? scene.textures.get('forest_night').getSourceImage() : null;
+  const rawDay = hasDay ? scene.textures.get('forest_day').getSourceImage() : null;
+  const rawNight = hasNight ? scene.textures.get('forest_night').getSourceImage() : null;
+  const dayImg = rawDay && rawDay.width > 0 && rawDay.height > 0 ? rawDay : null;
+  const nightImg = rawNight && rawNight.width > 0 && rawNight.height > 0 ? rawNight : null;
+  if (!dayImg && !nightImg) return false;
 
   if (dayImg) {
     // 1. Day Sky (Sun + Blue Sky + Clouds)

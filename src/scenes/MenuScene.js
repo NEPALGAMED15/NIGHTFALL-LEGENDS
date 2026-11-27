@@ -14,12 +14,18 @@ import {
 import { saveSystem } from '../systems/SaveSystem.js';
 import { audioSystem } from '../systems/AudioSystem.js';
 import { DayNightManager } from '../systems/DayNightManager.js';
+import { computeMenuCoverFraming } from '../systems/ViewportLayout.js';
+import { adManager } from '../systems/AdManager.js';
+import { resolveAdPlacement } from '../systems/AdPlacementPolicy.js';
+import { GAME_CREDITS_ENTRIES, GAME_INFO_DETAILS } from '../systems/GameInfoContent.js';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
     super('MenuScene');
     this.overlay = null;
-    this.activeSubModal = null; // null | 'levels' | 'bonus' | 'armory' | 'settings' | 'credits' | 'confirmReset'
+    this.activeSubModal = null; // null | 'levels' | 'bonus' | 'armory' | 'settings' | 'info' | 'credits' | 'confirmReset'
+    this.modalReturnTo = null; // null | 'settings'
+    this.creditsPaused = false;
     this.selectedKingdomIdx = 0;
     this.selectedLevelPage = 0;
     this.modalNotice = '';
@@ -28,6 +34,12 @@ export class MenuScene extends Phaser.Scene {
 
   create() {
     document.body.dataset.state = 'title';
+    document.getElementById('boot-loader')?.classList.add('hidden');
+    if (typeof window !== 'undefined') window.__NIGHTFALL_BOOT_READY__ = true;
+
+    adManager.setGameplayActive(false);
+    adManager.setLayoutChangeHandler((reservedBottom) => this.applyAdBottomPadding(reservedBottom));
+
     const save = saveSystem.load();
     const curInfo = getKingdomForLevel(save.currentLevel || 1);
     this.selectedKingdomIdx = Math.max(0, curInfo.kingdom.order - 1);
@@ -41,12 +53,25 @@ export class MenuScene extends Phaser.Scene {
     });
 
     this.buildLiveBackdrop();
+    this.applyResponsiveCamera();
     this.mountMenuOverlay();
+
+    this.resizeHandler = () => {
+      this.applyResponsiveCamera();
+      if (this.activeSubModal === 'credits' || this.activeSubModal === 'info') {
+        this.renderMenu();
+      } else {
+        this.syncMenuAds();
+      }
+    };
+    this.scale.on('resize', this.resizeHandler);
+    window.addEventListener('resize', this.resizeHandler);
 
     this.keyHandler = (e) => {
       if (this.activeSubModal) {
         if (e.key === 'Escape') {
-          this.activeSubModal = null;
+          this.activeSubModal = this.modalReturnTo || null;
+          this.modalReturnTo = null;
           this.modalNotice = '';
           this.renderMenu();
         }
@@ -61,8 +86,36 @@ export class MenuScene extends Phaser.Scene {
 
     this.events.once('shutdown', () => {
       window.removeEventListener('keydown', this.keyHandler);
+      window.removeEventListener('resize', this.resizeHandler);
+      this.scale.off('resize', this.resizeHandler);
+      adManager.setLayoutChangeHandler(null);
+      adManager.clearAll();
       this.unmountMenuOverlay();
     });
+  }
+
+  applyAdBottomPadding(reservedBottom = 0) {
+    if (!this.overlay) return;
+    if (reservedBottom > 0) {
+      this.overlay.style.paddingBottom = `${reservedBottom + 10}px`;
+    } else {
+      this.overlay.style.paddingBottom = '';
+    }
+  }
+
+  syncMenuAds() {
+    if (!this.overlay) return;
+    const decision = adManager.syncMenuPlacement({
+      activeSubModal: this.activeSubModal,
+    });
+    this.applyAdBottomPadding(decision.reservedBottomPx);
+  }
+
+  applyResponsiveCamera() {
+    const cam = this.cameras.main;
+    const framing = computeMenuCoverFraming(this.scale.width, this.scale.height);
+    cam.setZoom(framing.zoom);
+    cam.centerOn(GAME_WIDTH / 2, GAME_HEIGHT / 2);
   }
 
   buildLiveBackdrop() {
@@ -192,7 +245,7 @@ export class MenuScene extends Phaser.Scene {
 
     this.skyGfx.clear();
     this.skyGfx.fillGradientStyle(st.skyTop, st.skyTop, st.skyBottom, st.skyBottom, 1);
-    this.skyGfx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    this.skyGfx.fillRect(-320, -320, GAME_WIDTH + 640, GAME_HEIGHT + 640);
 
     if (this.dayMenuLayers?.length > 0 || this.nightMenuLayers?.length > 0) {
       const nightAlpha = Phaser.Math.Clamp(st.nightFactor, 0, 1);
@@ -226,7 +279,7 @@ export class MenuScene extends Phaser.Scene {
     const root = document.getElementById('ui-overlay');
     const div = document.createElement('div');
     div.id = 'menu-overlay';
-    div.className = 'fixed inset-0 pointer-events-auto flex flex-col justify-between p-5 md:p-11 z-30';
+    div.className = 'absolute inset-0 pointer-events-auto flex flex-col justify-between p-4 sm:p-6 md:p-10 overflow-y-auto z-30';
     root.appendChild(div);
     this.overlay = div;
     this.renderMenu();
@@ -245,6 +298,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   launchCampaignLevel(levelNumber = 1, fromSave = false) {
+    adManager.setGameplayActive(true);
     audioSystem.ensureContext();
     const lv = Math.max(1, Math.min(1000, Math.round(levelNumber || 1)));
     const info = getKingdomForLevel(lv);
@@ -258,6 +312,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   launchBonusWorld(bonusWorldId) {
+    adManager.setGameplayActive(true);
     audioSystem.ensureContext();
     this.scene.start('GameScene', { bonusWorldId, fromSave: false });
   }
@@ -322,8 +377,8 @@ export class MenuScene extends Phaser.Scene {
     const diffTier = getDifficultyTierForLevel(pageStart);
 
     return `
-      <div class="fixed inset-0 bg-black/80 flex items-center justify-center p-3 sm:p-5 z-40">
-        <div class="nf-panel rounded-xl p-4 sm:p-6 max-w-4xl w-full max-h-[90vh] flex flex-col gap-3.5 overflow-hidden">
+      <div class="absolute inset-0 bg-black/80 flex items-center justify-center p-3 sm:p-5 z-40">
+        <div class="nf-panel rounded-xl p-4 sm:p-6 max-w-4xl w-full max-h-full flex flex-col gap-3.5 overflow-hidden">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 class="font-display text-lg sm:text-xl text-[#e6cb8b] font-bold">Main Campaign — 1000 Levels</h2>
@@ -385,8 +440,8 @@ export class MenuScene extends Phaser.Scene {
 
   renderBonusWorldsModal(save) {
     return `
-      <div class="fixed inset-0 bg-black/80 flex items-center justify-center p-3 sm:p-5 z-40">
-        <div class="nf-panel rounded-xl p-4 sm:p-6 max-w-4xl w-full max-h-[90vh] flex flex-col gap-3.5 overflow-hidden">
+      <div class="absolute inset-0 bg-black/80 flex items-center justify-center p-3 sm:p-5 z-40">
+        <div class="nf-panel rounded-xl p-4 sm:p-6 max-w-4xl w-full max-h-full flex flex-col gap-3.5 overflow-hidden">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 class="font-display text-lg sm:text-xl text-[#e6cb8b] font-bold">15 Bonus Worlds</h2>
@@ -451,8 +506,8 @@ export class MenuScene extends Phaser.Scene {
     const xpPct = Math.min(100, Math.round(((save.xp || 0) / nextXp) * 100));
 
     return `
-      <div class="fixed inset-0 bg-black/80 flex items-center justify-center p-3 sm:p-5 z-40">
-        <div class="nf-panel rounded-xl p-4 sm:p-6 max-w-3xl w-full max-h-[90vh] flex flex-col gap-4 overflow-hidden">
+      <div class="absolute inset-0 bg-black/80 flex items-center justify-center p-3 sm:p-5 z-40">
+        <div class="nf-panel rounded-xl p-4 sm:p-6 max-w-3xl w-full max-h-full flex flex-col gap-4 overflow-hidden">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 class="font-display text-lg sm:text-xl text-[#e6cb8b] font-bold">Nightwalker Armory & Chronicle</h2>
@@ -539,6 +594,203 @@ export class MenuScene extends Phaser.Scene {
     `;
   }
 
+  renderGameInfoModal() {
+    const d = GAME_INFO_DETAILS;
+    const env = adManager.getEnvironmentSnapshot();
+    const infoAdDecision = resolveAdPlacement({
+      sceneState: 'title',
+      activeSubModal: 'info',
+      width: env.width,
+      height: env.height,
+      hasTouch: env.hasTouch,
+      userAgent: env.userAgent,
+    });
+    const showInfoAdSlot = infoAdDecision.slot === 'info';
+
+    const infoRows = [
+      { label: 'Developer / Creator', value: d.developer, accent: 'gold' },
+      { label: 'Creator Name', value: d.creatorName, accent: 'gold' },
+      { label: 'Game Genre', value: d.genre, accent: 'blue' },
+      { label: 'Platforms', value: d.platforms, accent: 'light' },
+      { label: 'Game Modes', value: d.modes, accent: 'light' },
+      { label: 'Campaign', value: d.campaign, accent: 'gold' },
+      { label: 'World', value: d.world, accent: 'blue' },
+      { label: 'Main Character', value: d.mainCharacter, accent: 'blue' },
+    ];
+
+    return `
+      <div class="absolute inset-0 bg-black/85 flex items-center justify-center p-2.5 sm:p-5 z-40">
+        <div class="nf-fantasy-modal rounded-xl p-4 sm:p-6 max-w-4xl w-full max-h-full flex flex-col gap-3 sm:gap-4 overflow-hidden">
+          <div class="nf-stars-layer"></div>
+          <div class="nf-stars-layer-2"></div>
+          <div class="nf-shadow-vignette"></div>
+
+          <!-- Header -->
+          <div class="relative z-10 flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#c4a25e]/25">
+            <div>
+              <div class="text-[10px] sm:text-xs uppercase tracking-[0.24em] text-sky-300/90 font-semibold nf-glow-blue">
+                Game Information
+              </div>
+              <h2 class="font-display text-lg sm:text-2xl text-[#e6cb8b] font-extrabold tracking-wider nf-glow-gold">
+                ${d.title}
+              </h2>
+              <p class="text-xs sm:text-sm text-sky-200/90 italic">${d.tagline}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button data-open-credits-from-info class="nf-btn-secondary px-3 py-1.5 rounded text-xs font-semibold">
+                Credits
+              </button>
+              <button data-back-modal class="nf-btn-primary px-3.5 py-1.5 rounded text-xs font-bold">
+                Back
+              </button>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="relative z-10 overflow-y-auto pr-1 flex flex-col ${
+            showInfoAdSlot ? 'md:flex-row' : ''
+          } gap-3 sm:gap-4 items-stretch">
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              ${infoRows
+                .map((row) => {
+                  const valClass =
+                    row.accent === 'gold'
+                      ? 'text-[#f5e3b3] nf-glow-gold'
+                      : row.accent === 'blue'
+                        ? 'text-sky-300 nf-glow-blue'
+                        : 'text-slate-100';
+                  return `
+                    <div class="bg-slate-950/75 border border-[#c4a25e]/22 rounded-lg px-3.5 py-2.5 shadow-inner">
+                      <div class="text-[10px] uppercase tracking-[0.18em] text-slate-400 mb-0.5">${row.label}</div>
+                      <div class="text-xs sm:text-sm font-semibold leading-snug ${valClass}">${row.value}</div>
+                    </div>
+                  `;
+                })
+                .join('')}
+            </div>
+
+            ${
+              showInfoAdSlot
+                ? `<div class="shrink-0 flex flex-col items-center justify-center pt-2 md:pt-0 md:pl-3 border-t md:border-t-0 md:border-l border-white/10">
+                     <span class="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Sponsored</span>
+                     <div id="info-ad-slot" data-testid="info-ad-slot" class="w-[300px] h-[250px] max-w-full flex items-center justify-center overflow-hidden bg-black/40 rounded border border-white/10"></div>
+                   </div>`
+                : ''
+            }
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderCreditsModal() {
+    const env = adManager.getEnvironmentSnapshot();
+    const infoAdDecision = resolveAdPlacement({
+      sceneState: 'title',
+      activeSubModal: 'credits',
+      width: env.width,
+      height: env.height,
+      hasTouch: env.hasTouch,
+      userAgent: env.userAgent,
+    });
+    const showInfoAdSlot = infoAdDecision.slot === 'info';
+
+    const renderCreditBlock = (item) => {
+      if (item.accent === 'gold') {
+        return `
+          <div class="py-3.5 sm:py-4 text-center px-3">
+            <div class="text-[10px] sm:text-xs uppercase tracking-[0.28em] text-sky-300/90 font-semibold mb-1 nf-glow-blue">
+              ${item.role}
+            </div>
+            <div class="font-display text-xl sm:text-2xl font-extrabold tracking-widest text-[#f5e3b3] nf-glow-gold">
+              ${item.name}
+            </div>
+          </div>
+        `;
+      }
+      if (item.accent === 'blue') {
+        return `
+          <div class="py-3.5 sm:py-4 text-center px-3">
+            <div class="text-[10px] sm:text-xs uppercase tracking-[0.28em] text-[#e6cb8b]/85 font-semibold mb-1">
+              ${item.role}
+            </div>
+            <div class="font-display text-lg sm:text-2xl font-extrabold tracking-wider text-sky-300 nf-glow-blue">
+              ${item.name}
+            </div>
+          </div>
+        `;
+      }
+      return `
+        <div class="py-2.5 text-center px-3">
+          <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 mb-0.5">${item.role}</div>
+          <div class="text-xs sm:text-sm font-medium text-slate-200">${item.name}</div>
+        </div>
+      `;
+    };
+
+    const repeatedEntries = [...GAME_CREDITS_ENTRIES, ...GAME_CREDITS_ENTRIES]
+      .map((item) => renderCreditBlock(item))
+      .join('<div class="w-24 h-px bg-gradient-to-r from-transparent via-[#c4a25e]/35 to-transparent mx-auto"></div>');
+
+    return `
+      <div class="absolute inset-0 bg-black/85 flex items-center justify-center p-2.5 sm:p-5 z-40">
+        <div class="nf-fantasy-modal rounded-xl p-4 sm:p-6 ${
+          showInfoAdSlot ? 'max-w-4xl' : 'max-w-2xl'
+        } w-full max-h-full flex flex-col gap-3 overflow-hidden">
+          <div class="nf-stars-layer"></div>
+          <div class="nf-stars-layer-2"></div>
+          <div class="nf-shadow-vignette"></div>
+
+          <!-- Header -->
+          <div class="relative z-10 flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#c4a25e]/25">
+            <div>
+              <div class="text-[10px] sm:text-xs uppercase tracking-[0.26em] text-sky-300 font-semibold nf-glow-blue">
+                Hall of Creators
+              </div>
+              <h2 class="font-display text-lg sm:text-2xl text-[#e6cb8b] font-extrabold tracking-wider nf-glow-gold">
+                NIGHTFALL LEGENDS · CREDITS
+              </h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <button data-toggle-credits-scroll class="nf-btn-secondary px-3 py-1.5 rounded text-xs font-semibold">
+                ${this.creditsPaused ? 'Resume Scroll' : 'Pause Scroll'}
+              </button>
+              <button data-back-modal class="nf-btn-primary px-3.5 py-1.5 rounded text-xs font-bold">
+                Back
+              </button>
+            </div>
+          </div>
+
+          <!-- Credits Scroll Stage + Optional Wide Desktop Sponsor Slot -->
+          <div class="relative z-10 flex-1 min-h-0 flex flex-col ${
+            showInfoAdSlot ? 'lg:flex-row' : ''
+          } gap-4 items-stretch">
+            <div class="nf-credits-viewport flex-1 min-h-[210px] h-[250px] sm:h-[340px] bg-slate-950/55 border border-[#c4a25e]/20 rounded-lg px-3 py-2 ${
+              this.creditsPaused ? 'overflow-y-auto' : ''
+            }">
+              <div data-testid="credits-scroll-track" class="nf-credits-track ${this.creditsPaused ? 'is-paused' : ''}">
+                ${repeatedEntries}
+              </div>
+            </div>
+
+            ${
+              showInfoAdSlot
+                ? `<div class="shrink-0 flex flex-col items-center justify-center lg:pl-3 lg:border-l border-white/10">
+                     <span class="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Sponsored</span>
+                     <div id="info-ad-slot" data-testid="info-ad-slot" class="w-[300px] h-[250px] max-w-full flex items-center justify-center overflow-hidden bg-black/40 rounded border border-white/10"></div>
+                   </div>`
+                : ''
+            }
+          </div>
+
+          <div class="relative z-10 text-center text-[11px] text-slate-400">
+            Thank you for playing NIGHTFALL LEGENDS · Created by <span class="text-[#e6cb8b] font-semibold">NEPALCMD</span> · <span class="text-sky-300 font-semibold">RAJ KUMAR MAHATO</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   renderMenu() {
     if (!this.overlay) return;
     const save = saveSystem.load();
@@ -555,11 +807,11 @@ export class MenuScene extends Phaser.Scene {
       modalHtml = this.renderArmoryModal(save);
     } else if (this.activeSubModal === 'settings') {
       modalHtml = `
-        <div class="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-40">
-          <div class="nf-panel rounded-xl p-6 max-w-md w-full">
+        <div class="absolute inset-0 bg-black/75 flex items-center justify-center p-3 sm:p-4 overflow-y-auto z-40">
+          <div class="nf-panel rounded-xl p-5 sm:p-6 max-w-md w-full max-h-full overflow-y-auto">
             <div class="flex items-center justify-between mb-5">
-              <h2 class="font-display text-xl text-[#e6cb8b] font-bold">Settings</h2>
-              <button data-close-modal class="nf-btn-secondary px-3 py-1.5 rounded text-xs font-semibold">Close</button>
+              <h2 class="font-display text-xl text-[#e6cb8b] font-bold">Settings & About Game</h2>
+              <button data-close-modal class="nf-btn-secondary px-3 py-1.5 rounded text-xs font-semibold">Back</button>
             </div>
             <div class="space-y-4 text-sm">
               <div class="flex items-center justify-between">
@@ -585,6 +837,20 @@ export class MenuScene extends Phaser.Scene {
                   ${save.settings.touchControls === 'always' ? 'Always On' : save.settings.touchControls === 'off' ? 'Off' : 'Auto (Mobile)'}
                 </button>
               </div>
+
+              <!-- About Game Subsection -->
+              <div class="pt-3 border-t border-white/10">
+                <div class="text-[11px] uppercase tracking-widest text-[#e6cb8b]/85 font-semibold mb-2">About Game</div>
+                <div class="grid grid-cols-2 gap-2">
+                  <button data-open-info-from-settings class="nf-btn-secondary px-3 py-2 rounded text-xs font-semibold text-center">
+                    Game Information
+                  </button>
+                  <button data-open-credits-from-settings class="nf-btn-secondary px-3 py-2 rounded text-xs font-semibold text-center">
+                    Credits
+                  </button>
+                </div>
+              </div>
+
               <div class="pt-3 border-t border-white/10 flex items-center justify-between">
                 <span class="text-slate-400 text-xs">Shards: ${save.totalShards} · Gems: ${save.totalGems} · Best: ${save.bestScore}</span>
                 <button data-ask-reset class="px-3 py-1.5 rounded text-xs font-semibold bg-rose-900/60 border border-rose-500/40 text-rose-200 hover:bg-rose-800/70">
@@ -597,8 +863,8 @@ export class MenuScene extends Phaser.Scene {
       `;
     } else if (this.activeSubModal === 'confirmReset') {
       modalHtml = `
-        <div class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div class="nf-panel rounded-xl p-6 max-w-sm w-full">
+        <div class="absolute inset-0 bg-black/80 flex items-center justify-center p-3 sm:p-4 overflow-y-auto z-50">
+          <div class="nf-panel rounded-xl p-5 sm:p-6 max-w-sm w-full max-h-full overflow-y-auto">
             <h2 class="font-display text-lg text-rose-300 font-bold mb-2">Confirm Reset Save</h2>
             <p class="text-sm text-slate-300 mb-5">This will erase all 1000-level campaign progress, bonus world unlocks, upgrades, and best score. This cannot be undone.</p>
             <div class="flex items-center justify-end gap-2.5">
@@ -608,24 +874,10 @@ export class MenuScene extends Phaser.Scene {
           </div>
         </div>
       `;
+    } else if (this.activeSubModal === 'info') {
+      modalHtml = this.renderGameInfoModal();
     } else if (this.activeSubModal === 'credits') {
-      modalHtml = `
-        <div class="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-40">
-          <div class="nf-panel rounded-xl p-6 max-w-md w-full">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="font-display text-xl text-[#e6cb8b] font-bold">Credits</h2>
-              <button data-close-modal class="nf-btn-secondary px-3 py-1.5 rounded text-xs font-semibold">Close</button>
-            </div>
-            <div class="space-y-3 text-sm text-slate-300">
-              <p><strong class="text-white">NIGHTFALL LEGENDS</strong> — 2D Dark Fantasy Action Adventure</p>
-              <p>Protagonist: Kael, The Last Nightwalker · Blade: Nightfang</p>
-              <p>1000 Campaign Levels across 7 Kingdoms + 15 Separate Bonus Worlds</p>
-              <p>Engine: Phaser 3 · HTML5 Canvas · Procedural Web Audio Synth</p>
-              <p class="text-xs text-slate-400">Built for PC Keyboard and Android Touch Controls.</p>
-            </div>
-          </div>
-        </div>
-      `;
+      modalHtml = this.renderCreditsModal();
     }
 
     this.overlay.innerHTML = `
@@ -640,8 +892,8 @@ export class MenuScene extends Phaser.Scene {
       </div>
 
       <!-- Left Third Complementary Region: Bespoke SVG Lockup & Menu Actions -->
-      <div class="max-w-lg my-auto">
-        <svg viewBox="0 0 460 118" class="w-full max-w-[430px] mb-2" role="img" aria-label="NIGHTFALL LEGENDS">
+      <div class="max-w-lg my-auto py-2">
+        <svg viewBox="0 0 460 118" class="w-full max-w-[340px] sm:max-w-[430px] max-h-[82px] sm:max-h-none mb-1.5 sm:mb-2" role="img" aria-label="NIGHTFALL LEGENDS">
           <defs>
             <linearGradient id="nfGold" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="#f5e3b3"/>
@@ -657,42 +909,46 @@ export class MenuScene extends Phaser.Scene {
           <line x1="80" y1="96" x2="355" y2="96" stroke="#c4a25e" stroke-opacity="0.45" stroke-width="1.5"/>
         </svg>
 
-        <p class="text-sm text-slate-300 mb-6 tracking-wide">When the Sun Falls, Legends Awaken. · 7 Kingdoms · 1000 Levels · 15 Bonus Worlds</p>
+        <p class="text-xs sm:text-sm text-slate-300 mb-3 sm:mb-5 tracking-wide">When the Sun Falls, Legends Awaken. · 7 Kingdoms · 1000 Levels · 15 Bonus Worlds</p>
 
-        <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch sm:items-center gap-2.5 max-w-md">
+        <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-2.5 max-w-md">
           <button data-start="true" data-action="new-game"
-            class="nf-btn-primary px-6 py-3 rounded-md text-sm font-bold tracking-wide col-span-2 sm:col-span-1">
+            class="nf-btn-primary px-5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-bold tracking-wide col-span-2 sm:col-span-1">
             ${hasContinue ? `Play Lv. ${currentLv}` : 'New Game'}
           </button>
           <button data-action="continue" ${hasContinue ? '' : 'disabled'}
-            class="nf-btn-secondary px-4 py-3 rounded-md text-sm font-semibold">
+            class="nf-btn-secondary px-3.5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold">
             Continue
           </button>
           <button data-action="levels"
-            class="nf-btn-secondary px-4 py-3 rounded-md text-sm font-semibold">
+            class="nf-btn-secondary px-3.5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold">
             1000 Levels
           </button>
           <button data-action="bonus"
-            class="nf-btn-secondary px-4 py-3 rounded-md text-sm font-semibold">
+            class="nf-btn-secondary px-3.5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold">
             15 Bonus Worlds
           </button>
           <button data-action="armory"
-            class="nf-btn-secondary px-4 py-3 rounded-md text-sm font-semibold">
+            class="nf-btn-secondary px-3.5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold">
             Armory
           </button>
           <button data-action="settings"
-            class="nf-btn-secondary px-4 py-3 rounded-md text-sm font-semibold">
+            class="nf-btn-secondary px-3.5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold">
             Settings
           </button>
+          <button data-action="info"
+            class="nf-btn-secondary px-3.5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold">
+            Game Info
+          </button>
           <button data-action="credits"
-            class="nf-btn-secondary px-4 py-3 rounded-md text-sm font-semibold">
+            class="nf-btn-secondary px-3.5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold">
             Credits
           </button>
         </div>
       </div>
 
       <!-- Bottom Safe Margin: Single Flat Control Hint Line -->
-      <div class="text-xs text-slate-400 tracking-wide">
+      <div class="text-[11px] sm:text-xs text-slate-400 tracking-wide pt-2">
         A/D Move · W/S Climb · Space Jump · J Attack · Shift Dash · K/2–5 Abilities · E Interact · T Day/Night · Esc Pause
       </div>
 
@@ -722,11 +978,20 @@ export class MenuScene extends Phaser.Scene {
     });
     this.overlay.querySelector('[data-action="settings"]')?.addEventListener('click', () => {
       this.activeSubModal = 'settings';
+      this.modalReturnTo = null;
+      this.modalNotice = '';
+      this.renderMenu();
+    });
+    this.overlay.querySelector('[data-action="info"]')?.addEventListener('click', () => {
+      this.activeSubModal = 'info';
+      this.modalReturnTo = null;
       this.modalNotice = '';
       this.renderMenu();
     });
     this.overlay.querySelector('[data-action="credits"]')?.addEventListener('click', () => {
       this.activeSubModal = 'credits';
+      this.modalReturnTo = null;
+      this.creditsPaused = false;
       this.modalNotice = '';
       this.renderMenu();
     });
@@ -737,10 +1002,37 @@ export class MenuScene extends Phaser.Scene {
       this.renderMenu();
     });
 
-    // Modal shared close
+    // Modal shared close / Back
     this.overlay.querySelector('[data-close-modal]')?.addEventListener('click', () => {
       this.activeSubModal = null;
+      this.modalReturnTo = null;
       this.modalNotice = '';
+      this.renderMenu();
+    });
+    this.overlay.querySelector('[data-back-modal]')?.addEventListener('click', () => {
+      this.activeSubModal = this.modalReturnTo || null;
+      this.modalReturnTo = null;
+      this.modalNotice = '';
+      this.renderMenu();
+    });
+    this.overlay.querySelector('[data-open-info-from-settings]')?.addEventListener('click', () => {
+      this.modalReturnTo = 'settings';
+      this.activeSubModal = 'info';
+      this.renderMenu();
+    });
+    this.overlay.querySelector('[data-open-credits-from-settings]')?.addEventListener('click', () => {
+      this.modalReturnTo = 'settings';
+      this.creditsPaused = false;
+      this.activeSubModal = 'credits';
+      this.renderMenu();
+    });
+    this.overlay.querySelector('[data-open-credits-from-info]')?.addEventListener('click', () => {
+      this.creditsPaused = false;
+      this.activeSubModal = 'credits';
+      this.renderMenu();
+    });
+    this.overlay.querySelector('[data-toggle-credits-scroll]')?.addEventListener('click', () => {
+      this.creditsPaused = !this.creditsPaused;
       this.renderMenu();
     });
 
@@ -857,5 +1149,7 @@ export class MenuScene extends Phaser.Scene {
       this.modalNotice = '';
       this.renderMenu();
     });
+
+    this.syncMenuAds();
   }
 }

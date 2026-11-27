@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { adManager } from '../systems/AdManager.js';
 
 export class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -20,6 +21,7 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   create() {
+    adManager.setGameplayActive(true);
     document.body.dataset.state = 'gameover';
     this.mountModal();
 
@@ -33,7 +35,7 @@ export class GameOverScene extends Phaser.Scene {
     const root = document.getElementById('ui-overlay');
     const div = document.createElement('div');
     div.id = 'gameover-modal';
-    div.className = 'fixed inset-0 bg-black/75 pointer-events-auto flex items-center justify-center p-4 z-40';
+    div.className = 'absolute inset-0 bg-black/75 pointer-events-auto flex items-center justify-center p-4 overflow-y-auto z-40';
 
     div.innerHTML = `
       <div class="nf-panel rounded-xl p-6 max-w-md w-full text-center border-rose-500/40">

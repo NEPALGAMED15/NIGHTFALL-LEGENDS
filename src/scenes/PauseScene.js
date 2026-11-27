@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { audioSystem } from '../systems/AudioSystem.js';
 import { saveSystem } from '../systems/SaveSystem.js';
+import { adManager } from '../systems/AdManager.js';
 
 export class PauseScene extends Phaser.Scene {
   constructor() {
@@ -15,6 +16,7 @@ export class PauseScene extends Phaser.Scene {
   }
 
   create() {
+    adManager.setGameplayActive(true);
     document.body.dataset.state = 'paused';
     this.mountModal();
 
@@ -43,7 +45,7 @@ export class PauseScene extends Phaser.Scene {
     const root = document.getElementById('ui-overlay');
     const div = document.createElement('div');
     div.id = 'pause-modal';
-    div.className = 'fixed inset-0 bg-black/70 pointer-events-auto flex items-center justify-center p-4 z-40';
+    div.className = 'absolute inset-0 bg-black/75 pointer-events-auto flex items-center justify-center p-4 overflow-y-auto z-40';
 
     const save = saveSystem.load();
     div.innerHTML = `

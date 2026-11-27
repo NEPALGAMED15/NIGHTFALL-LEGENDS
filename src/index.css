@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+:root {
+  --app-height: 100dvh;
+}
+
 @layer base {
   html,
   body {
@@ -7,14 +11,32 @@
     padding: 0;
     width: 100%;
     height: 100%;
+    height: var(--app-height, 100dvh);
     overflow: hidden;
+    overscroll-behavior: none;
     background-color: #07090f;
     color: #eae6dc;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
+}
+
+.nf-viewport-shell {
+  width: 100%;
+  height: 100%;
+  height: var(--app-height, 100dvh);
+}
+
+.nf-viewport-overlay {
+  width: 100%;
+  height: var(--app-height, 100dvh);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .font-display {
@@ -26,12 +48,33 @@
   font-variant-numeric: tabular-nums;
 }
 
+#game-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 #game-container canvas {
   display: block;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+}
+
+#home-ad-dock,
+#info-ad-slot,
+.nf-ad-frame {
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.nf-ad-frame iframe {
+  display: block;
+  max-width: 100% !important;
+  border: 0;
 }
 
 .nf-panel {
@@ -74,8 +117,8 @@
 }
 
 .nf-touch-btn {
-  background: rgba(14, 18, 28, 0.72);
-  border: 1.5px solid rgba(196, 162, 94, 0.42);
+  background: rgba(14, 18, 28, 0.78);
+  border: 1.5px solid rgba(196, 162, 94, 0.48);
   color: #eae6dc;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
   touch-action: none;
@@ -89,10 +132,108 @@
   border-color: #e6cb8b;
 }
 
+.nf-fantasy-modal {
+  position: relative;
+  background: radial-gradient(circle at 50% 15%, rgba(28, 42, 74, 0.55) 0%, rgba(10, 13, 22, 0.96) 55%, rgba(5, 7, 13, 0.99) 100%);
+  border: 1px solid rgba(196, 162, 94, 0.42);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 36px rgba(56, 189, 248, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.nf-stars-layer,
+.nf-stars-layer-2,
+.nf-shadow-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.nf-stars-layer {
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(226, 232, 240, 0.85) 50%, transparent 100%),
+    radial-gradient(1px 1px at 28% 42%, rgba(56, 189, 248, 0.8) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 46% 12%, rgba(230, 203, 139, 0.85) 50%, transparent 100%),
+    radial-gradient(1px 1px at 67% 31%, rgba(226, 232, 240, 0.75) 50%, transparent 100%),
+    radial-gradient(2px 2px at 84% 20%, rgba(56, 242, 210, 0.7) 50%, transparent 100%),
+    radial-gradient(1px 1px at 22% 78%, rgba(230, 203, 139, 0.7) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 58% 72%, rgba(147, 197, 253, 0.75) 50%, transparent 100%),
+    radial-gradient(1px 1px at 88% 82%, rgba(226, 232, 240, 0.75) 50%, transparent 100%);
+  animation: nfStarTwinkle 4.5s ease-in-out infinite alternate;
+}
+
+.nf-stars-layer-2 {
+  background-image:
+    radial-gradient(1px 1px at 8% 58%, rgba(147, 197, 253, 0.7) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 36% 64%, rgba(230, 203, 139, 0.65) 50%, transparent 100%),
+    radial-gradient(1px 1px at 53% 48%, rgba(226, 232, 240, 0.65) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 74% 61%, rgba(56, 189, 248, 0.7) 50%, transparent 100%),
+    radial-gradient(1px 1px at 93% 46%, rgba(230, 203, 139, 0.75) 50%, transparent 100%);
+  animation: nfStarTwinkle 6.2s ease-in-out 1.2s infinite alternate-reverse;
+}
+
+.nf-shadow-vignette {
+  background: radial-gradient(ellipse at center, transparent 42%, rgba(3, 5, 10, 0.72) 100%);
+}
+
+.nf-glow-gold {
+  text-shadow: 0 0 18px rgba(230, 203, 139, 0.36), 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.nf-glow-blue {
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.42), 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.nf-credits-viewport {
+  position: relative;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%);
+}
+
+.nf-credits-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: nfCreditsRoll 22s linear infinite;
+  will-change: transform;
+}
+
+.nf-credits-track.is-paused {
+  animation-play-state: paused;
+}
+
+@keyframes nfStarTwinkle {
+  0% {
+    opacity: 0.38;
+  }
+  100% {
+    opacity: 0.92;
+  }
+}
+
+@keyframes nfCreditsRoll {
+  0% {
+    transform: translateY(10%);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nf-btn-primary,
   .nf-btn-secondary,
   .nf-touch-btn {
     transition: none;
+  }
+  .nf-stars-layer,
+  .nf-stars-layer-2,
+  .nf-credits-track {
+    animation: none;
+    transform: none;
+  }
+  .nf-credits-viewport {
+    overflow-y: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }

@@ -32,6 +32,8 @@ export class LevelManager {
     this.skyGfx = null;
     this.dayLayers = [];
     this.nightLayers = [];
+    this.skyArtLayers = [];
+    this.mountainArtLayers = [];
     this.dayScrollTiles = [];
     this.nightScrollTiles = [];
     this.waterfallDrops = [];
@@ -80,28 +82,36 @@ export class LevelManager {
     if (isLevel1ArtShowcase) {
       // Dedicated Day Sky & Night Sky extracted art layers
       if (this.scene.textures.exists('layer_sky_day')) {
-        this.dayLayers.push(this.scene.add.image(720, 280, 'layer_sky_day').setScrollFactor(0.025, 0).setDepth(1));
+        const skyDay = this.scene.add.image(GAME_WIDTH / 2, 280, 'layer_sky_day').setScrollFactor(0, 1).setDepth(1);
+        this.dayLayers.push(skyDay);
+        this.skyArtLayers.push(skyDay);
       }
       if (this.scene.textures.exists('layer_sky_night')) {
-        this.nightLayers.push(this.scene.add.image(720, 280, 'layer_sky_night').setScrollFactor(0.025, 0).setDepth(1));
+        const skyNight = this.scene.add.image(GAME_WIDTH / 2, 280, 'layer_sky_night').setScrollFactor(0, 1).setDepth(1);
+        this.nightLayers.push(skyNight);
+        this.skyArtLayers.push(skyNight);
       }
       for (let i = 0; i < 42; i++) {
         const star = this.scene.add
           .circle(Math.random() * GAME_WIDTH, 14 + Math.random() * 210, 1 + Math.random() * 1.4, 0xe2e8f0, 0.8)
-          .setScrollFactor(0.025, 0)
+          .setScrollFactor(0.025, 1)
           .setDepth(1);
         this.stars.push(star);
       }
       if (this.scene.textures.exists('layer_mountains_day')) {
-        this.dayLayers.push(this.scene.add.image(810, 280, 'layer_mountains_day').setScrollFactor(0.08, 0).setDepth(2));
+        const mDay = this.scene.add.image(810, 280, 'layer_mountains_day').setScrollFactor(0.08, 1).setDepth(2);
+        this.dayLayers.push(mDay);
+        this.mountainArtLayers.push(mDay);
       }
       if (this.scene.textures.exists('layer_mountains_night')) {
-        this.nightLayers.push(this.scene.add.image(810, 280, 'layer_mountains_night').setScrollFactor(0.08, 0).setDepth(2));
+        const mNight = this.scene.add.image(810, 280, 'layer_mountains_night').setScrollFactor(0.08, 1).setDepth(2);
+        this.nightLayers.push(mNight);
+        this.mountainArtLayers.push(mNight);
       }
       if (this.scene.textures.exists('layer_forest_day')) {
         const fDay = this.scene.add
           .tileSprite(GAME_WIDTH / 2, k.groundY - 95, GAME_WIDTH, 360, 'layer_forest_day')
-          .setScrollFactor(0)
+          .setScrollFactor(0, 1)
           .setDepth(3);
         this.dayLayers.push(fDay);
         this.dayScrollTiles.push(fDay);
@@ -109,7 +119,7 @@ export class LevelManager {
       if (this.scene.textures.exists('layer_forest_night')) {
         const fNight = this.scene.add
           .tileSprite(GAME_WIDTH / 2, k.groundY - 95, GAME_WIDTH, 360, 'layer_forest_night')
-          .setScrollFactor(0)
+          .setScrollFactor(0, 1)
           .setDepth(3);
         this.nightLayers.push(fNight);
         this.nightScrollTiles.push(fNight);
@@ -117,7 +127,7 @@ export class LevelManager {
       for (let i = 0; i < 18; i++) {
         const drop = this.scene.add
           .circle(800 + Math.random() * 210, 320 + Math.random() * 210, 2 + Math.random() * 2.2, 0xbae6fd, 0.45)
-          .setScrollFactor(0.24, 0)
+          .setScrollFactor(0.24, 1)
           .setDepth(4);
         this.waterfallDrops.push({ sprite: drop, speed: 60 + Math.random() * 65 });
       }
@@ -134,43 +144,43 @@ export class LevelManager {
             0xe2e8f0,
             0.78
           )
-          .setScrollFactor(0.02)
+          .setScrollFactor(0.02, 0.2)
           .setDepth(1);
         this.stars.push(star);
       }
       this.celestialGlow = this.scene.add
         .circle(celX, celY, radius * 2.0, this.bgComp.layerPalette.accentHex, 0.18)
-        .setScrollFactor(0.03)
+        .setScrollFactor(0, 0.2)
         .setDepth(1);
       this.celestial = this.scene.add
         .circle(celX, celY, radius, 0xe2e8f0, 0.95)
-        .setScrollFactor(0.03)
+        .setScrollFactor(0, 0.2)
         .setDepth(2);
 
       for (let i = 0; i < cloudCount; i++) {
         const c = this.scene.add
           .ellipse(120 + i * (GAME_WIDTH / cloudCount), 85 + (i % 3) * 42, 130 + (i % 2) * 50, 34, 0xffffff, 0.18)
-          .setScrollFactor(0.05)
+          .setScrollFactor(0.05, 1)
           .setDepth(2);
         this.clouds.push({ sprite: c, speed: 6 + (i % 3) * 4 });
       }
 
-      // LAYER 3: Distant Mountains & Cosmic Horizon
+      // LAYER 3: Distant Mountains & Cosmic Horizon (locked vertically to groundY)
       this.dynMountains = this.scene.add
         .tileSprite(GAME_WIDTH / 2, k.groundY - 190, GAME_WIDTH, 380, 'bg_dyn_mountains')
-        .setScrollFactor(0)
+        .setScrollFactor(0, 1)
         .setDepth(3);
 
       // LAYER 4: Midground Architecture, Castles, Temples, Cottages, Trees
       this.dynStructures = this.scene.add
         .tileSprite(GAME_WIDTH / 2, k.groundY - 190, GAME_WIDTH, 380, 'bg_dyn_structures')
-        .setScrollFactor(0)
+        .setScrollFactor(0, 1)
         .setDepth(4);
 
       // LAYER 5: Foreground Silhouettes / Lanterns / Props
       this.dynForeground = this.scene.add
         .tileSprite(GAME_WIDTH / 2, k.groundY - 190, GAME_WIDTH, 380, 'bg_dyn_foreground')
-        .setScrollFactor(0)
+        .setScrollFactor(0, 1)
         .setDepth(6);
     }
 
@@ -193,6 +203,45 @@ export class LevelManager {
       .setDepth(24);
 
     this.nightVisionGlow = this.scene.add.circle(0, 0, 175, 0x2dd4bf, 0.14).setDepth(23).setVisible(false);
+    this.syncViewportSize(this.scene.cameras.main);
+  }
+
+  syncViewportSize(cam) {
+    if (!cam) return;
+    const zoom = Math.max(0.25, cam.zoom || 1);
+    const visW = Math.max(GAME_WIDTH, Math.ceil(cam.width / zoom) + 80);
+    const visH = Math.max(GAME_HEIGHT, Math.ceil(cam.height / zoom) + 40);
+    const cx = cam.width / 2;
+    const cy = cam.height / 2;
+
+    if (this.darknessOverlay) {
+      this.darknessOverlay.setPosition(cx, cy).setSize(visW, visH);
+    }
+    this.skyArtLayers.forEach((img) => {
+      const texW = img.width || 1440;
+      const scaleX = Math.max(1, visW / texW);
+      img.setPosition(cx, 280).setScale(scaleX, Math.max(1, scaleX * 0.95));
+    });
+    this.mountainArtLayers.forEach((img) => {
+      const texW = img.width || 1680;
+      const scaleX = Math.max(1, (visW + 240) / texW);
+      img.setPosition(cx + 120, 280).setScale(scaleX, 1);
+    });
+    this.dayScrollTiles.forEach((t) => {
+      t.setPosition(cx, this.kingdom.groundY - 95).setSize(visW, 360);
+    });
+    this.nightScrollTiles.forEach((t) => {
+      t.setPosition(cx, this.kingdom.groundY - 95).setSize(visW, 360);
+    });
+    if (this.dynMountains) {
+      this.dynMountains.setPosition(cx, this.kingdom.groundY - 190).setSize(visW, 380);
+    }
+    if (this.dynStructures) {
+      this.dynStructures.setPosition(cx, this.kingdom.groundY - 190).setSize(visW, 380);
+    }
+    if (this.dynForeground) {
+      this.dynForeground.setPosition(cx, this.kingdom.groundY - 190).setSize(visW, 380);
+    }
   }
 
   buildWeatherParticles(k) {
@@ -736,11 +785,18 @@ export class LevelManager {
     const skyTopHex = topCol ? Phaser.Display.Color.GetColor(topCol.r, topCol.g, topCol.b) : cycleState.skyTop;
     const skyBotHex = botCol ? Phaser.Display.Color.GetColor(botCol.r, botCol.g, botCol.b) : cycleState.skyBottom;
 
+    const cam = this.scene.cameras.main;
+    const zoom = Math.max(0.25, cam.zoom || 1);
+    const visW = cam.width / zoom + 16;
+    const visH = cam.height / zoom + 16;
+    const skyLeft = cam.width / 2 - visW / 2;
+    const skyTop = cam.height / 2 - visH / 2;
+
     this.skyGfx.clear();
     this.skyGfx.fillGradientStyle(skyTopHex, skyTopHex, skyBotHex, skyBotHex, 1);
-    this.skyGfx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    this.skyGfx.fillRect(skyLeft, skyTop, visW, visH);
 
-    const camScrollX = this.scene.cameras.main.scrollX;
+    const camScrollX = cam.scrollX;
 
     if (this.dayLayers.length > 0 || this.nightLayers.length > 0) {
       const dayAlpha = 1 - nightAlpha;
@@ -760,8 +816,9 @@ export class LevelManager {
     } else {
       // Strictly show Sun during Day and Moon+Stars during Night (never combined)
       const dayAlpha = 1 - nightAlpha;
-      const arcX = 200 + cycleState.cycleProgress * 860;
-      const arcY = 170 - Math.sin(cycleState.cycleProgress * Math.PI * 2) * 52;
+      const spanW = Math.min(visW * 0.66, 840);
+      const arcX = cam.width / 2 - spanW / 2 + cycleState.cycleProgress * spanW;
+      const arcY = Math.round(cam.height / 2 - visH * 0.30 - Math.sin(cycleState.cycleProgress * Math.PI * 2) * 35);
       this.celestial?.setPosition(arcX, arcY).setFillStyle(cycleState.celestialColor, 0.95);
       this.celestialGlow?.setPosition(arcX, arcY).setFillStyle(cycleState.celestialColor, cycleState.isNightDominant ? 0.16 : 0.24);
       this.stars.forEach((s) => s.setAlpha(cycleState.starAlpha * 0.88));

@@ -181,3 +181,34 @@ test('ProgressionManager & SaveSystem v2 persist level unlocks, stars, XP, Armor
   assert.ok(xpRes.playerLevel >= 3);
   assert.ok(xpRes.levelsGained >= 2);
 });
+
+import { computeCameraFraming, computeMenuCoverFraming } from './ViewportLayout.js';
+
+test('ViewportLayout prevents black letterboxing bars and enlarges mobile landscape framing', () => {
+  const portrait = computeCameraFraming(390, 844, 720);
+  assert.equal(portrait.isPortrait, true);
+  assert.equal(portrait.isMobileLandscape, false);
+  assert.ok(portrait.visibleH <= 720, `Portrait visibleH ${portrait.visibleH} exceeded 720`);
+
+  const landscape = computeCameraFraming(844, 390, 720);
+  assert.equal(landscape.isPortrait, false);
+  assert.equal(landscape.isMobileLandscape, true);
+  assert.ok(landscape.zoom > 390 / 720, 'Mobile landscape should zoom in larger than fit-to-world-height');
+  assert.ok(landscape.visibleH <= 720, `Landscape visibleH ${landscape.visibleH} exceeded 720`);
+  assert.ok(landscape.followOffsetY < 0, 'Mobile landscape should shift ground up above bottom touch controls');
+
+  const compactLandscape = computeCameraFraming(667, 375, 720);
+  assert.equal(compactLandscape.isMobileLandscape, true);
+  assert.ok(compactLandscape.visibleH <= 720);
+
+  const desktop = computeCameraFraming(1440, 900, 720);
+  assert.equal(desktop.isPortrait, false);
+  assert.equal(desktop.isMobileLandscape, false);
+  assert.ok(desktop.visibleH <= 720);
+
+  const menuPortrait = computeMenuCoverFraming(390, 844);
+  assert.ok(menuPortrait.zoom >= 844 / 720);
+  const menuLandscape = computeMenuCoverFraming(844, 390);
+  assert.ok(menuLandscape.zoom >= 844 / 1280);
+});
+

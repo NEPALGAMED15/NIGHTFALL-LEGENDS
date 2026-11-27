@@ -14,6 +14,8 @@ import { saveSystem } from '../systems/SaveSystem.js';
 import { audioSystem } from '../systems/AudioSystem.js';
 import { GameHUD } from '../ui/GameHUD.js';
 import { MobileControls } from '../ui/MobileControls.js';
+import { computeCameraFraming } from '../systems/ViewportLayout.js';
+import { adManager } from '../systems/AdManager.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -23,6 +25,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   init(data) {
+    adManager.setGameplayActive(true);
     this.bonusWorldId = data?.bonusWorldId || null;
     if (data?.levelNumber) {
       this.levelNumber = Math.max(1, Math.min(1000, Number(data.levelNumber)));
@@ -36,7 +39,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    adManager.setGameplayActive(true);
     document.body.dataset.state = 'playing';
+    document.getElementById('boot-loader')?.classList.add('hidden');
+    if (typeof window !== 'undefined') window.__NIGHTFALL_BOOT_READY__ = true;
+
     const save = saveSystem.load();
 
     // Generate Campaign Level (1..1000) or Bonus World (1..15)
@@ -111,11 +118,11 @@ export class GameScene extends Phaser.Scene {
       this.boss = null;
     }
 
-    // Camera follow
+    // Responsive Camera follow (fills 100% viewport across portrait, mobile landscape, and desktop)
     const cam = this.cameras.main;
     cam.setBounds(0, 0, this.kingdom.worldWidth, this.kingdom.worldHeight);
-    cam.startFollow(this.player, true, 0.12, 0.12);
-    cam.setFollowOffset(-80, 35);
+    cam.startFollow(this.player, true, 0.14, 0.14);
+    this.applyCameraFraming();
 
     // Run stats
     this.stats = {
@@ -137,6 +144,7 @@ export class GameScene extends Phaser.Scene {
       onToggleDayNight: () => this.toggleDayNightMode(),
       onToggleMute: () => this.toggleMute(),
       onPause: () => this.pauseGame(),
+      onToggleFullscreen: () => this.requestFullscreenLandscape(),
       onTriggerAbility: (abilityId) => this.player?.tryActivateAbility(abilityId),
     });
     this.hud.mount({
@@ -152,10 +160,13 @@ export class GameScene extends Phaser.Scene {
       onPause: () => this.pauseGame(),
     });
     this.mobileControls.mount(save.settings.touchControls || 'auto');
+    this.applyCameraFraming();
 
     this.resizeHandler = () => {
+      this.applyCameraFraming();
       this.mobileControls?.mount(saveSystem.load().settings.touchControls || 'auto');
     };
+    this.scale.on('resize', this.resizeHandler);
     window.addEventListener('resize', this.resizeHandler);
 
     this.events.once('shutdown', () => {
@@ -164,7 +175,36 @@ export class GameScene extends Phaser.Scene {
     this.events.on('resume', () => {
       document.body.dataset.state = 'playing';
       this.clearHeldKeys();
+      this.applyCameraFraming();
     });
+  }
+
+  applyCameraFraming() {
+    if (!this.cameras?.main || !this.kingdom) return;
+    const cam = this.cameras.main;
+    const framing = computeCameraFraming(this.scale.width, this.scale.height, this.kingdom.worldHeight);
+    cam.setZoom(framing.zoom);
+    cam.setFollowOffset(framing.followOffsetX, framing.followOffsetY);
+    this.levelManager?.syncViewportSize?.(cam);
+    const touchMode = saveSystem.load().settings.touchControls || 'auto';
+    const showTouch = Boolean(this.mobileControls?.shouldShow(touchMode));
+    this.hud?.setOrientationHint?.(framing.isPortrait, showTouch);
+  }
+
+  async requestFullscreenLandscape() {
+    try {
+      const shell = document.getElementById('game-shell') || document.documentElement;
+      if (!document.fullscreenElement && shell.requestFullscreen) {
+        await shell.requestFullscreen();
+      } else if (document.fullscreenElement && document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+      if (screen.orientation?.lock) {
+        await screen.orientation.lock('landscape').catch(() => {});
+      }
+    } catch {
+      // Non-fatal: iOS Safari / restricted iframes may disallow orientation lock
+    }
   }
 
   setupInputs() {
@@ -600,6 +640,7 @@ export class GameScene extends Phaser.Scene {
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('blur', this.onBlurOrHide);
     document.removeEventListener('visibilitychange', this.onBlurOrHide);
+    this.scale.off('resize', this.resizeHandler);
     window.removeEventListener('resize', this.resizeHandler);
   }
 }

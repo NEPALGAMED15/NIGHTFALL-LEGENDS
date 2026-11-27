@@ -32,29 +32,29 @@ export class MobileControls {
 
     const wrap = document.createElement('div');
     wrap.id = 'mobile-controls';
-    wrap.className = 'fixed inset-x-0 bottom-2 px-3 flex items-end justify-between pointer-events-none z-30';
+    wrap.className = 'absolute inset-x-0 bottom-0 pb-2 px-2.5 sm:px-4 flex items-end justify-between pointer-events-none z-30';
 
     wrap.innerHTML = `
       <!-- Left D-Pad Cluster -->
-      <div class="flex items-center gap-2 pointer-events-auto">
+      <div class="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
         <button data-touch="left" aria-label="Move Left"
-          class="nf-touch-btn w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center text-base sm:text-lg font-bold">
+          class="nf-touch-btn w-11 h-11 sm:w-13 sm:h-13 rounded-xl flex items-center justify-center text-base sm:text-lg font-bold">
           ◀
         </button>
         <button data-touch="right" aria-label="Move Right"
-          class="nf-touch-btn w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center text-base sm:text-lg font-bold">
+          class="nf-touch-btn w-11 h-11 sm:w-13 sm:h-13 rounded-xl flex items-center justify-center text-base sm:text-lg font-bold">
           ▶
         </button>
       </div>
 
       <!-- Center Climb & Interact Controls -->
-      <div class="flex items-center gap-1.5 pointer-events-auto mb-1">
+      <div class="flex items-center gap-1.5 pointer-events-auto mb-0.5">
         <button data-touch="up" aria-label="Climb Ladder"
-          class="nf-touch-btn px-2.5 h-11 rounded-lg text-xs font-semibold text-amber-200">
+          class="nf-touch-btn px-2.5 h-10 sm:h-11 rounded-lg text-xs font-semibold text-amber-200">
           ▲
         </button>
         <button data-touch="interact" aria-label="Interact"
-          class="nf-touch-btn px-3 h-11 rounded-lg text-xs font-semibold">
+          class="nf-touch-btn px-2.5 sm:px-3 h-10 sm:h-11 rounded-lg text-[11px] sm:text-xs font-semibold">
           Interact
         </button>
       </div>
@@ -62,19 +62,19 @@ export class MobileControls {
       <!-- Right Action Cluster -->
       <div class="grid grid-cols-2 gap-1.5 pointer-events-auto">
         <button data-touch="ability" aria-label="Special Ability"
-          class="nf-touch-btn w-12 h-11 rounded-xl text-xs font-semibold text-amber-300">
+          class="nf-touch-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl text-[11px] sm:text-xs font-semibold text-amber-300">
           Skill
         </button>
         <button data-touch="dash" aria-label="Shadow Dash"
-          class="nf-touch-btn w-12 h-11 rounded-xl text-xs font-semibold text-sky-300">
+          class="nf-touch-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl text-[11px] sm:text-xs font-semibold text-sky-300">
           Dash
         </button>
         <button data-touch="attack" aria-label="Sword Attack"
-          class="nf-touch-btn w-12 h-12 rounded-xl text-xs font-bold text-[#e6cb8b]">
+          class="nf-touch-btn w-11 h-11 sm:w-12 sm:h-12 rounded-xl text-[11px] sm:text-xs font-bold text-[#e6cb8b]">
           Slash
         </button>
         <button data-touch="jump" aria-label="Jump"
-          class="nf-touch-btn w-12 h-12 rounded-xl text-xs font-bold text-teal-300">
+          class="nf-touch-btn w-11 h-11 sm:w-12 sm:h-12 rounded-xl text-[11px] sm:text-xs font-bold text-teal-300">
           Jump
         </button>
       </div>
